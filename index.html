@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Forest Gate</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="game">
+  <div id="scene">
+    <div class="layer" id="layerA"></div>
+    <div class="layer" id="layerB"></div>
+    <div id="tint"></div>
+    <div id="figure" aria-hidden="true">
+      <svg viewBox="0 0 100 300"><ellipse cx="50" cy="40" rx="22" ry="28" fill="#000"/><path d="M28 70Q50 58 72 70L86 292L14 292Z" fill="#000"/><ellipse cx="41" cy="38" rx="4" ry="2.5" fill="#f3f0c0"/><ellipse cx="59" cy="38" rx="4" ry="2.5" fill="#f3f0c0"/></svg>
+    </div>
+    <div class="fog f1"></div>
+    <div class="fog f2"></div>
+    <div class="fog f3"></div>
+
+    <div id="gatePanel" class="hidden" title="The gate's stones">
+      <svg class="gem" id="gem-oak" viewBox="0 0 24 24"><path d="M12 2l8 7-8 13L4 9z"/></svg>
+      <svg class="gem" id="gem-river" viewBox="0 0 24 24"><path d="M12 2l8 7-8 13L4 9z"/></svg>
+      <svg class="gem" id="gem-shrine" viewBox="0 0 24 24"><path d="M12 2l8 7-8 13L4 9z"/></svg>
+    </div>
+
+    <button id="bagBtn" class="hidden" aria-label="Inventory">🎒</button>
+    <div id="bagPop" class="hidden"></div>
+    <button id="muteBtn" aria-label="Toggle sound">🔇</button>
+  </div>
+
+  <div id="dialogue" class="hidden">
+    <div id="locName"></div>
+    <div id="text"></div>
+    <div id="choices"></div>
+  </div>
+</div>
+
+<div id="veil"><div id="veilText"></div></div>
+
+<div id="title">
+  <h1 data-i18n>The Forest Gate</h1>
+  <div class="menu">
+    <button id="btnContinue" class="hidden" data-i18n>Continue</button>
+    <button id="btnNew">Click to start</button>
+    <button id="btnEndings" data-i18n>Endings</button>
+    <button id="btnSound">Sound: off</button>
+    <button id="btnLang">🌐 English</button>
+  </div>
+  <p class="tip" data-i18n>Best played with headphones and the sound on.</p>
+</div>
+
+<div id="eyeCard" class="hidden">
+  <svg viewBox="0 0 400 200" aria-hidden="true">
+    <path d="M8 100Q200 -30 392 100Q200 230 8 100Z" fill="#e9e2d2"/>
+    <g stroke="#a01818" stroke-width="1.5" fill="none" opacity=".55">
+      <path d="M30 100Q70 90 110 100"/><path d="M370 100Q330 90 290 100"/>
+      <path d="M60 80Q90 88 120 92"/><path d="M340 80Q310 88 280 92"/>
+      <path d="M60 120Q90 112 120 108"/><path d="M340 120Q310 112 280 108"/>
+    </g>
+    <g class="iris">
+      <circle cx="200" cy="100" r="62" fill="#5a0a0a"/>
+      <circle cx="200" cy="100" r="48" fill="#b01218"/>
+      <circle cx="200" cy="100" r="30" fill="#e8901c"/>
+      <ellipse cx="200" cy="100" rx="9" ry="46" fill="#000"/>
+      <circle cx="184" cy="82" r="7" fill="#fff" opacity=".7"/>
+    </g>
+    <path d="M8 100Q200 -30 392 100Q200 230 8 100Z" fill="none" stroke="#1a0505" stroke-width="7"/>
+  </svg>
+  <p id="eyeMsg"></p>
+</div>
+
+<div id="endCard" class="hidden">
+  <h1 id="endTitle">The End?</h1>
+  <p id="endNote"></p>
+  <div class="menu">
+    <button id="btnAgain" data-i18n>Play again</button>
+    <button id="btnHome" data-i18n>Home screen</button>
+  </div>
+</div>
+
+<div id="endingsPage" class="hidden">
+  <h1 data-i18n>Endings</h1>
+  <p id="endCount"></p>
+  <div id="endGrid"></div>
+  <button id="btnEndBack" data-i18n>Back</button>
+</div>
+
+<script src="story.js"></script>
+<script src="lang.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #050907; color: #e4ece6; overflow: hidden; }
+body { font-family: Georgia, "Times New Roman", "Songti SC", SimSun, "Microsoft YaHei", serif; }
+body.lang-zh { font-family: "Songti SC", SimSun, "Microsoft YaHei", Georgia, serif; }
+button { font-family: "Segoe UI", system-ui, "Microsoft YaHei", "PingFang SC", sans-serif; }
+.hidden { display: none !important; }
+
+#game { --accent: #7bd88f; height: 100vh; height: 100dvh; display: flex; flex-direction: column; max-width: 1200px; margin: 0 auto; }
+
+/* ---------- Scene ---------- */
+#scene { position: relative; flex: 0 0 62%; overflow: hidden; background: #0b1f1a; }
+.layer { position: absolute; inset: 0; opacity: 0; transition: opacity .6s ease; }
+.layer.on { opacity: 1; }
+.layer svg { width: 100%; height: 100%; display: block; }
+
+.fog { position: absolute; left: 0; width: 200%; pointer-events: none; z-index: 3;
+  background:
+    radial-gradient(ellipse at 8% 50%, rgba(205,220,215,.26), transparent 38%),
+    radial-gradient(ellipse at 30% 60%, rgba(205,220,215,.20), transparent 42%),
+    radial-gradient(ellipse at 55% 40%, rgba(205,220,215,.26), transparent 38%),
+    radial-gradient(ellipse at 80% 60%, rgba(205,220,215,.20), transparent 42%);
+  animation: drift 70s linear infinite alternate; }
+.f1 { bottom: -6%; height: 32%; opacity: calc(.55 * var(--fogk, 1)); }
+.f2 { bottom: 22%; height: 40%; opacity: calc(.4 * var(--fogk, 1)); animation-duration: 110s; animation-direction: alternate-reverse; }
+.f3 { top: 0; height: 35%; opacity: calc(.25 * var(--fogk, 1)); animation-duration: 150s; }
+@keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Gate panel / inventory / mute */
+#gatePanel { position: absolute; top: 12px; left: 12px; z-index: 5; display: flex; gap: 10px; padding: 8px 12px;
+  background: rgba(5,10,8,.55); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; animation: fadeIn 1s ease; }
+.gem { width: 28px; height: 28px; fill: #2c3036; stroke: #6a7078; stroke-width: 1; transition: fill .4s; }
+.gem.lit { stroke: #fff; }
+#gem-oak.lit    { fill: #ff4d5e; filter: drop-shadow(0 0 7px #ff4d5e); }
+#gem-river.lit  { fill: #4dff8a; filter: drop-shadow(0 0 7px #4dff8a); }
+#gem-shrine.lit { fill: #4da6ff; filter: drop-shadow(0 0 7px #4da6ff); }
+.gem.pulse { animation: pulse .6s ease-in-out 3; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 6px currentColor); }
+  50% { transform: scale(1.4); filter: brightness(1.8) drop-shadow(0 0 18px #fff); }
+}
+.eyes { animation: blink 7s infinite; }
+@keyframes blink { 0%, 55% { opacity: 0; } 60%, 90% { opacity: 1; } 93% { opacity: 0; } 96%, 100% { opacity: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+#bagBtn, #muteBtn { position: absolute; z-index: 5; font-size: 22px; line-height: 1; cursor: pointer;
+  background: rgba(5,10,8,.55); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 8px 10px; color: #fff; }
+#bagBtn { top: 12px; right: 12px; }
+#muteBtn { bottom: 10px; right: 12px; font-size: 16px; }
+#bagBtn:hover, #muteBtn:hover { background: rgba(255,255,255,.15); }
+#bagPop { position: absolute; z-index: 6; top: 58px; right: 12px; min-width: 200px; max-width: 80%; padding: 12px 14px;
+  background: rgba(8,14,12,.92); border: 1px solid rgba(255,255,255,.18); border-radius: 12px; font-size: 15px; }
+#bagPop b { color: var(--accent); }
+#bagPop .desc { opacity: .75; font-size: 13px; margin-top: 2px; }
+#bagPop .item + .item { margin-top: 8px; }
+
+/* ---------- Dialogue ---------- */
+#dialogue { flex: 1; min-height: 0; overflow-y: auto; margin: 8px 12px 10px; padding: 10px 18px 12px;
+  background: rgba(8,16,13,.88); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; cursor: default; }
+#locName { font-family: "Segoe UI", system-ui, sans-serif; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 8px; }
+#text { font-size: clamp(15px, 1.8vw, 19px); line-height: 1.5; min-height: 2.6em; }
+#text p { margin: 0 0 .6em; }
+#text .t { font-style: italic; color: #f1f6e8; }
+#text .w { font-style: italic; color: #b9d8cc; letter-spacing: .05em; text-shadow: 0 0 12px rgba(150,230,200,.4); }
+#text .note { white-space: pre-line; font-style: italic; margin: .5em 0 .8em; padding: 14px 18px; color: #3b2a14;
+  background: linear-gradient(#e8d9ae, #d9c590); border-radius: 4px; border: 1px solid #a98f55; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+
+#choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; opacity: 0; pointer-events: none; transition: opacity .4s; }
+#choices.show { opacity: 1; pointer-events: auto; }
+#choices button { font-family: "Segoe UI", system-ui, sans-serif; font-size: 15px; color: #eef5f0; cursor: pointer;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.22); border-radius: 999px; padding: 8px 16px;
+  transition: background .2s, border-color .2s, transform .1s; }
+#choices button:hover { background: rgba(255,255,255,.18); border-color: var(--accent); }
+#choices button:active { transform: scale(.97); }
+#choices .num { opacity: .55; margin-right: 8px; font-size: 12px; }
+
+/* ---------- Veil / title / end ---------- */
+#veil { position: fixed; inset: 0; z-index: 50; background: #000; opacity: 1; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; }
+#veilText { font-size: clamp(24px, 4vw, 40px); color: #fff; opacity: 0; text-align: center; padding: 0 24px; }
+
+#title, #endCard { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px;
+  background: radial-gradient(ellipse at 50% 40%, #10231c, #000 70%); }
+#endCard { z-index: 70; background: #000; animation: fadeIn 2s ease; }
+#title h1, #endCard h1 { font-weight: normal; font-size: clamp(36px, 7vw, 72px); letter-spacing: .06em; margin: 0; text-align: center; }
+.menu { display: flex; flex-direction: column; gap: 14px; }
+#title button, #endCard button { font-family: "Segoe UI", system-ui, sans-serif; font-size: 18px; color: #eef5f0; cursor: pointer;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 12px 38px; }
+#title button:hover, #endCard button:hover { background: rgba(255,255,255,.2); }
+
+/* Mood darkens as levers are pulled: vignette, sickly tint, denser fog */
+#tint { position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: multiply; background: #fff;
+  box-shadow: inset 0 0 0 0 rgba(0,0,0,0); transition: background-color 3s, box-shadow 3s; }
+#scene { transition: filter .1s; }
+#scene[data-t="1"] { --fogk: 1.25; }
+#scene[data-t="2"] { --fogk: 1.6; }
+#scene[data-t="3"] { --fogk: 1.9; }
+#scene[data-t="1"] #tint { background: #dfe6df; box-shadow: inset 0 0 120px 20px rgba(0,0,0,.35); }
+#scene[data-t="2"] #tint { background: #c6d0a8; box-shadow: inset 0 0 160px 40px rgba(0,0,0,.55); }
+#scene[data-t="3"] #tint { background: #cba6a6; box-shadow: inset 0 0 200px 60px rgba(30,0,0,.7); }
+
+/* Eyes that watch back */
+.eyeWrap { transition: opacity .25s; }
+.pup { transition: transform .25s; }
+
+/* The figure at the edge of the trees */
+#figure { position: absolute; bottom: 6%; height: 66%; z-index: 4; opacity: 0; pointer-events: none; transition: opacity .3s;
+  filter: drop-shadow(0 0 14px rgba(200,215,205,.5)); }
+#figure svg { height: 100%; width: auto; display: block; }
+#scene.flicker { animation: flick .9s steps(1, end); }
+@keyframes flick { 0% { filter: brightness(1); } 10% { filter: brightness(.15); } 20% { filter: brightness(1); } 30% { filter: brightness(.1); }
+  55% { filter: brightness(.5); } 70% { filter: brightness(1); } 100% { filter: brightness(1); } }
+
+/* Endings page and end card */
+#endingsPage { position: fixed; inset: 0; z-index: 80; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 20px;
+  background: radial-gradient(ellipse at 50% 40%, #10231c, #000 75%); overflow-y: auto; }
+#endingsPage h1 { font-weight: normal; font-size: clamp(30px, 5vw, 52px); letter-spacing: .08em; margin: 0; }
+#endCount { margin: 0; opacity: .65; font-style: italic; }
+#endGrid { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; max-width: 960px; }
+.endBox { width: 260px; min-height: 150px; padding: 18px; border-radius: 14px; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 10px;
+  border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.05); }
+.endBox h3 { margin: 0; font-weight: normal; font-size: 22px; }
+.endBox p { margin: 0; font-size: 14px; opacity: .75; line-height: 1.5; }
+.endBox.got { border-color: #7bd88f; background: rgba(123,216,143,.08); }
+.endBox.locked { opacity: .55; border-style: dashed; }
+.endBox.locked h3 { font-size: 30px; letter-spacing: .25em; }
+#endingsPage button { font-family: "Segoe UI", system-ui, sans-serif; font-size: 18px; color: #eef5f0; cursor: pointer;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3); border-radius: 999px; padding: 12px 38px; }
+#endingsPage button:hover { background: rgba(255,255,255,.2); }
+#endNote { margin: 0; opacity: .6; font-style: italic; }
+
+.tip { margin: 0; font-size: 14px; opacity: .55; font-style: italic; text-align: center; padding: 0 20px; }
+
+/* The watcher */
+#eyeCard { position: fixed; inset: 0; z-index: 65; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; padding: 20px; }
+#eyeCard svg { width: min(86vw, 680px); height: auto; opacity: 0; animation: eyeIn 3s ease forwards, eyeBlink 8s 4s infinite; filter: drop-shadow(0 0 40px rgba(200,20,20,.55)); }
+#eyeCard .iris { animation: look 9s ease-in-out 3s infinite; }
+#eyeMsg { margin: 0; text-align: center; color: #d0121a; font-size: clamp(16px, 2.6vw, 26px); letter-spacing: .16em; line-height: 1.6;
+  text-shadow: 0 0 14px rgba(255,0,0,.6); opacity: 0; max-width: 900px; animation: fadeIn 3s ease 3.5s forwards; }
+@keyframes eyeIn { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes eyeBlink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.05); } }
+@keyframes look { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-34px); } 60% { transform: translateX(30px); } 80% { transform: translateX(0) translateY(-6px); } }
+
+/* ---------- Phone ---------- */
+@media (max-width: 640px) {
+  #scene { flex-basis: 38%; }
+  #choices { flex-direction: column; }
+  #choices button { width: 100%; text-align: left; border-radius: 14px; padding: 13px 16px; }
+  #dialogue { margin: 8px; padding: 12px 14px; }
+}
