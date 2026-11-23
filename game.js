@@ -673,12 +673,22 @@
   const layers = [$('layerA'), $('layerB')];
   let topLayer = -1, curKey = null;
 
-  // Keep the important middle band of the picture (levers, gems, eyes) visible however wide or short the scene is.
+  // Always show the picture's full height. On wide, short windows the extra width is filled with dark forest
+  // (see sideFill), so nothing at the top (gems) or bottom (levers) is ever cropped.
   function sceneViewBox() {
     const w = el.scene.clientWidth || 800, h = el.scene.clientHeight || 450;
-    const vh = Math.min(450, 800 / (w / h));               // visible height in picture units
-    const top = Math.max(0, Math.min(450 - vh, 265 - vh / 2));
-    return `0 ${top.toFixed(1)} 800 ${vh.toFixed(1)}`;
+    const a = w / h;
+    if (a <= 800 / 450) return '0 0 800 450';              // narrower than 16:9: sides are trimmed instead
+    const vw = 450 * a;
+    return `${(400 - vw / 2).toFixed(1)} 0 ${vw.toFixed(1)} 450`;
+  }
+  const SIDE_COLORS = { clearing: '#050f0b', gate: '#0a1016', oak: '#07120b', river: '#091218', hut: '#100a07', shrine: '#0b0817', stone: '#060a0e' };
+  function sideFill(loc) {
+    const c = SIDE_COLORS[loc] || '#050a08';
+    let o = rect(-1400, 400, 1400, 60, c) + rect(800, 400, 1400, 60, c);
+    o += pines(900 + loc.length, 16, 470, 220, 340, c, 1, -1400, -40, 0);
+    o += pines(950 + loc.length, 16, 470, 220, 340, c, 1, 840, 2200, 0);
+    return o;
   }
   window.addEventListener('resize', () => {
     layers.forEach(l => { const s = l.querySelector('svg'); if (s) s.setAttribute('viewBox', sceneViewBox()); });
@@ -690,7 +700,7 @@
     if (key === curKey) return;
     curKey = key;
     const art = ART[loc](s);
-    art.svg += eyes(loc, loc === 'stone' ? 6 : 1 + Object.values(s.levers).filter(Boolean).length);
+    art.svg = sideFill(loc) + art.svg + eyes(loc, loc === 'stone' ? 6 : 1 + Object.values(s.levers).filter(Boolean).length);
     const next = layers[topLayer === 0 ? 1 : 0];
     const old = topLayer >= 0 ? layers[topLayer] : null;
     next.style.background = art.bg;
