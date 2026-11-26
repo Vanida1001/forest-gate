@@ -10,7 +10,7 @@
     scene: $('scene'), gate: $('gatePanel'), bag: $('bagBtn'), bagPop: $('bagPop'), mute: $('muteBtn'),
     dialogue: $('dialogue'), locName: $('locName'), text: $('text'), choices: $('choices'),
     veil: $('veil'), veilText: $('veilText'), title: $('title'), endCard: $('endCard'),
-    eyeCard: $('eyeCard'), figure: $('figure'), endingsPage: $('endingsPage'), endGrid: $('endGrid'), endCount: $('endCount'), endNote: $('endNote'), btnEndings: $('btnEndings'), btnEndBack: $('btnEndBack'), btnSound: $('btnSound'), btnLang: $('btnLang'), btnContinue: $('btnContinue'), btnNew: $('btnNew'), btnAgain: $('btnAgain')
+    eyeCard: $('eyeCard'), figure: $('figure'), endingsPage: $('endingsPage'), endGrid: $('endGrid'), endCount: $('endCount'), endNote: $('endNote'), btnEndings: $('btnEndings'), btnEndBack: $('btnEndBack'), btnSound: $('btnSound'), btnLang: $('btnLang'), loreBtn: $('loreBtn'), lorePop: $('lorePop'), toast: $('toast'), btnContinue: $('btnContinue'), btnNew: $('btnNew'), btnAgain: $('btnAgain')
   };
   const LEVERS = ['oak', 'river', 'shrine'];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -41,7 +41,7 @@
       location: 'clearing', node: 'intro', noteRead: false,
       levers: { oak: false, river: false, shrine: false },
       shrineUnlocked: false, oakOpen: false, planked: false, plankTaken: false,
-      journalRead: false, runesRead: false, prophecyRead: false, pageRead: false, scares: 0, trailFound: false, steps: 0, riddleWrong: [], hasBag: false, inventory: [], visited: {}
+      journalRead: false, runesRead: false, prophecyRead: false, pageRead: false, lore: [], ghostMet: false, ghostAsked: [], ghostWish: false, ghostOffered: false, scares: 0, trailFound: false, steps: 0, riddleWrong: [], hasBag: false, inventory: [], visited: {}
     };
   }
 
@@ -62,6 +62,17 @@
   window.Game = {
     state: () => state,
     readNote() { state.noteRead = true; syncGate(); },
+    learn(id) {                                     // unlock a lore log entry
+      if (state.lore.includes(id)) return;
+      const entry = STORY.lore.find(x => x.id === id);
+      if (!entry) return;
+      state.lore.push(id);
+      syncLore();
+      showToast(trf('New lore entry: {a}', { a: tr(entry.title) }));
+      Snd.chime();
+      save();
+    },
+    ask(id) { if (!state.ghostAsked.includes(id)) state.ghostAsked.push(id); },
     pull(k) {
       state.levers[k] = true;
       Snd.clunk();
@@ -95,8 +106,31 @@
       ? state.inventory.map(id => `<div class="item"><b>${tr(STORY.items[id].name)}</b><div class="desc">${tr(STORY.items[id].desc)}</div></div>`).join('')
       : tr('Nothing yet.');
   }
-  el.bag.addEventListener('click', e => { e.stopPropagation(); el.bagPop.classList.toggle('hidden'); });
-  document.addEventListener('click', e => { if (!el.bagPop.contains(e.target)) el.bagPop.classList.add('hidden'); });
+  function syncLore() {
+    const have = state.lore.length, total = STORY.lore.length;
+    el.loreBtn.classList.toggle('hidden', have === 0);
+    if (have === 0) el.lorePop.classList.add('hidden');
+    let html = '<div class="loreHead">' + trf('Lore: {a} of {b}', { a: have, b: total }) + '</div>';
+    STORY.lore.forEach(e => {
+      html += state.lore.includes(e.id)
+        ? '<div class="item"><b>' + tr(e.title) + '</b><div class="desc">' + tr(e.text) + '</div></div>'
+        : '<div class="item locked"><b>???</b></div>';
+    });
+    el.lorePop.innerHTML = html;
+  }
+  let toastTimer = null;
+  function showToast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 4000);
+  }
+  el.bag.addEventListener('click', e => { e.stopPropagation(); el.lorePop.classList.add('hidden'); el.bagPop.classList.toggle('hidden'); });
+  el.loreBtn.addEventListener('click', e => { e.stopPropagation(); el.bagPop.classList.add('hidden'); el.lorePop.classList.toggle('hidden'); });
+  document.addEventListener('click', e => {
+    if (!el.bagPop.contains(e.target)) el.bagPop.classList.add('hidden');
+    if (!el.lorePop.contains(e.target)) el.lorePop.classList.add('hidden');
+  });
 
   /* ---------------- Typewriter + choices ---------------- */
   function typeSegments(segs, done) {
@@ -112,7 +146,7 @@
       e.style.display = 'none';
       el.text.appendChild(e);
       const s = tr(sg.s);
-      return { e, full: (sg.k === 't' || sg.k === 'w') ? '“' + s + '”' : s };
+      return { e, full: (sg.k === 't' || sg.k === 'w' || sg.k === 'gh') ? '“' + s + '”' : s };
     });
     const total = items.reduce((a, i) => a + i.full.length, 0);
     const start = performance.now();
@@ -263,7 +297,7 @@
     curKey = null;
     layers.forEach(l => l.classList.remove('on'));
     el.dialogue.classList.add('hidden');
-    syncGate(); syncBag();
+    syncGate(); syncBag(); syncLore();
     resetVeilText();
     setVeil(1, '#000');
 
@@ -288,7 +322,7 @@
     el.endCard.classList.add('hidden');
     curKey = null;
     resetVeilText();
-    syncGate(); syncBag();
+    syncGate(); syncBag(); syncLore();
     el.dialogue.classList.remove('hidden');
     Snd.setMode('game');
     show(state.node, { resume: true });
@@ -328,6 +362,7 @@
 
   /* ---------------- Scripted scare ---------------- */
   function scare(n) {
+    Game.learn('watchers');
     const fig = el.figure;
     fig.style.left = n === 0 ? '6%' : '';
     fig.style.right = n === 0 ? '' : '24%';
@@ -696,7 +731,7 @@
 
   function renderScene(loc) {
     const s = state;
-    const key = loc + JSON.stringify([s.levers, s.planked, s.oakOpen, s.plankTaken, s.shrineUnlocked, s.noteRead]);
+    const key = loc + JSON.stringify([s.levers, s.planked, s.oakOpen, s.plankTaken, s.shrineUnlocked, s.noteRead, s.journalRead]);
     if (key === curKey) return;
     curKey = key;
     const art = ART[loc](s);
@@ -892,6 +927,7 @@
       o += `<polygon points="276,250 410,165 544,250" fill="#3a2418"/>`;
       o += rect(395, 295, 42, 75, '#2a1a10');
       o += glow(350, 298, 40, '#e0953c', .45) + rect(332, 282, 38, 32, '#e0a050', 'opacity=".85"') + rect(349, 282, 3, 32, '#4a2e18') + rect(332, 297, 38, 3, '#4a2e18');
+      if (s.journalRead) o += glow(351, 300, 22, '#aac8ff', .35) + '<g opacity=".7"><circle cx="351" cy="294" r="5" fill="#d8e8ff"/><path d="M341 314Q342 300 351 300Q360 300 361 314Z" fill="#d8e8ff"/></g>';
       // woodpile
       for (let r = 0; r < 3; r++) for (let c = 0; c < 5 - r; c++) o += `<circle cx="${570 + c * 22 + r * 11}" cy="${360 - r * 20}" r="10" fill="#6b4a2e" stroke="#3a2a1a" stroke-width="2"/>`;
       if (!s.plankTaken) o += rect(548, 308, 110, 9, '#b08a58', 'rx="2" transform="rotate(-4 600 312)"');

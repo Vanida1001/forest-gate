@@ -14,6 +14,7 @@
 const n = s => ({ k: 'n', s });
 const t = s => ({ k: 't', s });
 const note = s => ({ k: 'note', s });
+const gh = s => ({ k: 'gh', s });   // Wren, the ghost keeper
 
 const count = s => Object.values(s.levers).filter(Boolean).length;
 const has = (s, item) => s.inventory.includes(item);
@@ -48,10 +49,14 @@ const STORY = {
         { text: 'The seasons pass. The forest and I learn to understand each other.', from: '#000', color: '#cfe8c8' },
         { text: 'And one day, somewhere in the moss, a stranger opens their eyes…', from: '#000', color: '#fff' }
       ],
-      // extra beat inserted after the first one when the player found every clue
-      extra: s => (s.prophecyRead && s.pageRead)
-        ? [{ text: 'The prophecy, the journal, the loose page, the runes. They were never warnings. They were an invitation. And now I know who has been watching me all this time: the ones who stayed before me.', from: '#0b1f1a', color: '#e4ece6' }]
-        : [],
+      // extra beats inserted after the first one, depending on what the player discovered
+      extra: s => {
+        const out = [];
+        if (s.ghostMet) out.push({ text: 'Wren smiles for the first time. Their outline loosens, thread by thread, and they drift into the mist, light as breath. “Thank you,” they whisper, and the cold leaves the air.', from: '#0b1f1a', color: '#cfe3ff' });
+        if (s.ghostOffered) out.push({ text: 'The forest keeps its word. A name returns to me, then a face, then a room with a window I once called home. It is enough. It is almost enough.', from: '#0b1f1a', color: '#e4ece6' });
+        if (s.prophecyRead && s.pageRead) out.push({ text: 'The prophecy, the journal, the loose page, the runes. They were never warnings. They were an invitation. And now I know who has been watching me all this time: the ones who stayed before me.', from: '#0b1f1a', color: '#e4ece6' });
+        return out;
+      },
       title: 'The Keeper',
       blurb: 'You stayed to tend the stones, and the forest kept you.'
     },
@@ -61,6 +66,9 @@ const STORY = {
         { text: 'Open sky. Cold air. Behind me, the gate closes without a sound.', from: '#dfe6df', color: '#2a3a30' },
         { text: 'I should feel free.', from: '#000', color: '#fff' }
       ],
+      extra: s => s.ghostMet
+        ? [{ text: 'Behind me, through the closing gate, a pale figure sits down in the mist and folds their hands. I do not look back. I do not dare.', from: '#dfe6df', color: '#2a3a30' }]
+        : [],
       eye: 'YOU ESCAPED THE FOREST. BUT THE FOREST HAS NOT FINISHED WITH YOU.',
       title: 'The One Who Escaped',
       blurb: 'You knew what the forest wanted, and left anyway. It is still watching.'
@@ -112,6 +120,24 @@ const STORY = {
   items: {
     plank: { name: 'Plank', desc: 'A long, solid plank. Maybe it could fix the bridge.' }
   },
+
+  // The lore log: entries are unlocked by finding things (Game.learn('id')).
+  lore: [
+    { id: 'gate', title: 'The Gate', text: 'An iron gate between two stone pillars, with three sockets on its crossbar. It will open only when all three stones are lit.' },
+    { id: 'note', title: 'The Note', text: 'Three levers hide among the trees. Each one wakes a stone, and when all three shine, the gate will open.' },
+    { id: 'roster', title: 'The Roster', text: 'Hundreds of names are scratched into the gate pillars, one for every keeper. The newest is Wren. Beside it is an empty space.' },
+    { id: 'watchers', title: 'The Watchers', text: 'Pale eyes blink between the trees. They vanish when I look at them, then watch from somewhere else.' },
+    { id: 'journal', title: "The Keeper's Journal", text: 'The last keeper wrote of waiting and of staying. As the years passed, their writing slipped into rhyme, as if the forest were speaking through them.' },
+    { id: 'page', title: 'The Loose Page', text: 'Those who flee the forest are followed beyond the wall. The eye that watches sees us all.' },
+    { id: 'ghost', title: 'Wren', text: 'The ghost of the last keeper sits by the cabin window. They kept the gate for longer than they can count.' },
+    { id: 'bargain', title: 'The Bargain', text: 'Long ago a gate was raised and a promise made: the forest would let wanderers go, if someone stayed to keep its three stones awake.' },
+    { id: 'kept', title: 'The Kept', text: 'The pale eyes belong to wanderers who stayed. They are not cruel, only lonely, and they watch closest when someone is about to leave.' },
+    { id: 'offer', title: "The Forest's Offer", text: 'The forest takes what you carry, so you arrive light enough to be kept. It will give your name and your memories back, but only to its keeper.' },
+    { id: 'wish', title: 'The Price of Leaving', text: 'If I leave, the stones go dark and the next wanderer finds no keeper. Wren cannot rest until someone takes their place.' },
+    { id: 'rest', title: "Wren's Wish", text: 'Wren only wants to rest. They will not ask me to stay out of pity, and they will understand whatever I choose.' },
+    { id: 'prophecy', title: 'The Prophecy', text: 'The wood is haunted and old, and it keeps whoever wanders. Three stones will wake, but few choose to go.' },
+    { id: 'runes', title: 'The Glowing Runes', text: 'The forest needs a keeper. The wanderer may leave, or remain and keep the light for the next who wakes.' }
+  ],
 
   riddle: {
     answers: [
@@ -168,6 +194,7 @@ const STORY = {
     /* ---------------- Gate ---------------- */
     gate: {
       loc: 'gate', visit: 'gate',
+      enter: () => { Game.learn('gate'); },
       text: (s, first) => {
         if (count(s) === 3) {
           const out = [
@@ -196,11 +223,17 @@ const STORY = {
     // Only reached by players who could stay: the forest tries to keep them.
     gate_confirm: {
       loc: 'gate', whisper: true,
-      text: () => [
-        n('I take a step toward the light. The gems flicker and dim, one by one, as if the stones are holding their breath. Then something breathes against my ear.'),
-        { k: 'w', s: 'Leaving so soon? They all say they want to go… Are you sure? The stones will go dark without you. And I have grown so fond of watching you.' },
-        n('The mist waits. Behind me, the trees creak closer, as if leaning in to hear my answer.')
-      ],
+      text: s => {
+        const out = [
+          n('I take a step toward the light. The gems flicker and dim, one by one, as if the stones are holding their breath. Then something breathes against my ear.'),
+          { k: 'w', s: 'Leaving so soon? They all say they want to go… Are you sure? The stones will go dark without you. And I have grown so fond of watching you.' }
+        ];
+        if (s.ghostMet) out.push(
+          n('At the edge of the mist, Wren stands, their outline flickering like a candle flame. They do not try to stop me.'),
+          gh(s.ghostWish ? 'Whatever you choose, thank you for listening. Truly.' : 'I only wanted someone to talk to again. Go, or stay. I will understand.'));
+        out.push(n('The mist waits. Behind me, the trees creak closer, as if leaning in to hear my answer.'));
+        return out;
+      },
       choices: () => [
         { label: 'I am leaving. Now.', go: '@end:escaped' },
         { label: 'Stay and keep the stones', go: '@end:stay' },
@@ -208,9 +241,19 @@ const STORY = {
       ]
     },
 
+    gate_pillars: {
+      loc: 'gate',
+      enter: () => { Game.learn('roster'); },
+      text: () => [
+        n('Names are scratched into the two stone pillars, hundreds of them, in many hands and many ages. Most are worn almost smooth. Near the bottom, the newest reads: WREN. Beside it, the stone is smooth and empty, as if waiting.'),
+        t('A roster of keepers. And a space left open.')
+      ],
+      choices: () => gateChoices()
+    },
+
     gate_note: {
       loc: 'gate', visit: 'note',
-      enter: s => { Game.readNote(); },
+      enter: s => { Game.readNote(); Game.learn('note'); },
       text: (s, first) => {
         const out = [note('Three levers hide among the trees;\neach wakes a stone, and each one frees.\nWhen all three gems begin to glow,\nthe gate will open. Off you go.')];
         if (first) out.push(t("Three levers… alright. Let's find them."));
@@ -265,7 +308,7 @@ const STORY = {
     },
     stone_read: {
       loc: 'stone',
-      enter: () => { Game.state().prophecyRead = true; },
+      enter: () => { Game.state().prophecyRead = true; Game.learn('prophecy'); },
       text: () => [
         n('Words are carved into the stone, worn but clear:'),
         note(STORY.prophecy),
@@ -362,18 +405,91 @@ const STORY = {
           ? [n('Inside, dust hangs in the air. A table stands in the middle of the room with an old journal on it.')]
           : [n('The dusty room. The old journal lies on the table.')];
         if (count(s) >= 2 && !s.pageRead) out.push(n('Now that the forest is glowing, I notice a floorboard under the table. It looks loose.'));
+        if (s.journalRead) out.push(n(s.ghostMet
+          ? 'Wren sits by the window, watching the trees.'
+          : 'The air by the window has gone cold. A pale figure sits there, very still, with their back to me. I could swear it was not there a moment ago.'));
         return out;
       },
       choices: s => [
         { label: 'Read the journal', go: 'hut_journal' },
         { label: 'Look under the table', if: () => count(s) >= 2 && !s.pageRead, go: 'hut_page' },
         { label: 'Read the loose page', if: () => s.pageRead, go: 'hut_page' },
+        { label: 'Speak to the pale figure', if: () => s.journalRead && !s.ghostMet, go: 'ghost_meet' },
+        { label: 'Talk to Wren', if: () => s.ghostMet, go: 'ghost' },
         { label: 'Go back outside', go: 'hut' }
       ]
     },
+
+    /* ---------------- Wren, the ghost keeper ---------------- */
+    ghost_meet: {
+      loc: 'hut',
+      enter: () => { Game.state().ghostMet = true; Game.learn('ghost'); },
+      text: () => [
+        n('I step closer. The figure turns. Their face is kind, and tired, and not quite solid: through their shoulder, I can see the window.'),
+        gh('You read my journal. Most never get that far. I am Wren. I kept this gate before you.'),
+        gh('Forgive the cold. I cannot help it, and I do not mean to frighten you. Ask whatever you like. It has been so long since anyone spoke to me.')
+      ],
+      choices: s => ghostChoices(s)
+    },
+    ghost: {
+      loc: 'hut',
+      text: () => [n('Wren waits, hands folded, patient as stone.')],
+      choices: s => ghostChoices(s)
+    },
+    ghost_place: {
+      loc: 'hut',
+      enter: () => { Game.ask('place'); Game.learn('bargain'); },
+      text: () => [
+        gh('This forest was a garden once, they say. Then it grew lonely.'),
+        gh('A gate was raised at its edge, and a promise made: the forest would let wanderers go, if someone stayed to keep its stones awake. A keeper.'),
+        gh('Three stones. Three levers. Someone must light them, and someone must stay and watch the lights. Otherwise the forest forgets how to let go.')
+      ],
+      choices: s => ghostChoices(s)
+    },
+    ghost_eyes: {
+      loc: 'hut',
+      enter: () => { Game.ask('eyes'); Game.learn('kept'); },
+      text: () => [
+        gh('You have seen them. The pale eyes in the trees.'),
+        gh('Wanderers who stayed. Not all of them chose it kindly. The forest loves company, and it keeps what it loves.'),
+        gh('They are not cruel. They are only lonely. They watch you most closely when you are near the gate, because they remember what it was to be about to leave.')
+      ],
+      choices: s => ghostChoices(s)
+    },
+    ghost_memory: {
+      loc: 'hut',
+      enter: () => { Game.ask('memory'); Game.learn('offer'); Game.state().ghostOffered = true; },
+      text: () => [
+        gh('You woke with nothing, yes? Everyone does.'),
+        gh('The forest takes what you carry, so that you arrive light enough to be kept.'),
+        gh('It can give it all back. A name. A face. A reason. But only to its keeper.'),
+        t('The forest will give me back who I am. If I stay.')
+      ],
+      choices: s => ghostChoices(s)
+    },
+    ghost_leave: {
+      loc: 'hut',
+      enter: () => { Game.ask('leave'); Game.learn('wish'); },
+      text: () => [
+        gh('I will not lie to you: the gate truly opens. You can walk out into the light. Many have.'),
+        gh('But then the stones go dark, and the next wanderer finds no keeper at all.'),
+        gh('And I… I have kept this gate longer than I can count. I am so tired.')
+      ],
+      choices: s => ghostChoices(s)
+    },
+    ghost_help: {
+      loc: 'hut',
+      enter: () => { Game.ask('help'); Game.learn('rest'); Game.state().ghostWish = true; },
+      text: () => [
+        gh('You would? Nobody has ever asked me that.'),
+        gh('If someone takes up the keeping, I can finally put it down. I can rest. That is all I want.'),
+        gh('But I will not ask it of you. A keeper who stays out of pity… the forest can tell, and it hurts. Whatever you choose, I will understand.')
+      ],
+      choices: s => ghostChoices(s)
+    },
     hut_page: {
       loc: 'hut',
-      enter: () => { Game.state().pageRead = true; },
+      enter: () => { Game.state().pageRead = true; Game.learn('page'); },
       text: () => [
         n('Under the loose floorboard, a folded page is tucked away, brittle and brown. The handwriting matches the journal, but here every line rhymes, as if the writer could no longer stop.'),
         note('I woke the stones, and the gate swung wide,\nand the forest begged me to stay inside.\nThose who refuse and flee its call\nare followed still beyond the wall,\nfor the eye that watches sees us all.'),
@@ -383,7 +499,7 @@ const STORY = {
     },
     hut_journal: {
       loc: 'hut',
-      enter: () => { Game.state().journalRead = true; },
+      enter: () => { Game.state().journalRead = true; Game.learn('journal'); },
       text: () => [
         note("I have kept this gate for many years now. Each spring I mean to leave, and each spring the forest asks me to wait a little longer. I do not know when I began writing like this, in rhyme, but the words come easier that way.\nThe forest needs a keeper, or the stones will sleep,\nand the next lost wanderer will wander and weep.\nSo I think I will stay, and the light I will keep."),
         t('Whoever wrote this never left. Was it a choice?')
@@ -426,7 +542,7 @@ const STORY = {
     },
     shrine_runes: {
       loc: 'shrine',
-      enter: () => { Game.state().runesRead = true; },
+      enter: () => { Game.state().runesRead = true; Game.learn('runes'); },
       text: () => [
         note('Three stones wake, one door shall gleam;\nthe forest needs a keeper, so it seems.\nGo if you wish, the way is clear,\nor stay, and keep the light burning here.'),
         t('The forest needs a keeper. So the way out is not the only choice here…')
@@ -446,8 +562,23 @@ function gateChoices() {
   return [
     { label: 'Read the note', go: 'gate_note' },
     { label: 'Try to open the gate', go: 'gate_try' },
+    { label: 'Examine the pillars', go: 'gate_pillars' },
     BACK
   ];
+}
+
+// Wren's topics: up to three unanswered ones are offered at a time, plus a way to leave.
+const GHOST_TOPICS = [
+  { id: 'place',  label: 'What is this place?',               go: 'ghost_place',  ok: () => true },
+  { id: 'eyes',   label: 'What are the eyes in the trees?',   go: 'ghost_eyes',   ok: s => s.ghostAsked.includes('place') },
+  { id: 'memory', label: "Why can't I remember anything?",    go: 'ghost_memory', ok: () => true },
+  { id: 'leave',  label: 'How do I leave?',                   go: 'ghost_leave',  ok: () => true },
+  { id: 'help',   label: 'Can I help you?',                   go: 'ghost_help',   ok: s => s.ghostAsked.includes('leave') }
+];
+function ghostChoices(s) {
+  const list = GHOST_TOPICS.filter(x => !s.ghostAsked.includes(x.id) && x.ok(s)).slice(0, 3).map(x => ({ label: x.label, go: x.go }));
+  list.push({ label: 'Say goodbye', go: 'hut_in' });
+  return list;
 }
 
 function oakChoices(s) {
