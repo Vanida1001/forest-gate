@@ -842,7 +842,7 @@
       const open = Object.values(s.levers).filter(Boolean).length === 3;
       let o = '';
       o += pines(11, 12, 335, 150, 230, '#16202a', .9, 0, 800, 1.5);
-      o += rect(0, 360, 800, 90, '#10171d');
+      o += rect(-1400, 360, 3600, 90, '#10171d');
       o += rect(280, 140, 240, 225, '#fff', `opacity="${open ? .95 : .42}"`);
       if (open) o += glow(400, 260, 200, '#fff', .5);
       const pillar = x => rect(x, 100, 50, 270, '#5b6670') + rect(x - 6, 90, 62, 14, '#7a8590') + rect(x - 6, 362, 62, 12, '#3f4852') +
@@ -893,15 +893,15 @@
     river(s) {
       let o = '';
       o += pines(31, 12, 250, 120, 200, '#18232d', .85, 0, 800, 2);
-      o += rect(0, 240, 800, 50, '#1e2d27');
+      o += rect(-1400, 240, 3600, 50, '#1e2d27');
       o += pines(32, 6, 262, 60, 110, '#12201c', .95, 0, 800, 0);
-      o += rect(0, 285, 800, 95, '#4d6b80');
-      for (let i = 0; i < 12; i++) {
-        const x = (i * 83) % 800, y = 295 + (i % 4) * 22;
+      o += rect(-1400, 285, 3600, 95, '#4d6b80');
+      for (let i = -8; i < 20; i++) {
+        const x = i * 83, y = 295 + (((i % 4) + 4) % 4) * 22;
         o += `<path d="M${x} ${y}q20 -8 40 0t40 0" stroke="#b5ccd8" stroke-width="2" fill="none" opacity=".4"/>`;
       }
       o += `<ellipse cx="400" cy="440" rx="520" ry="70" fill="#1a2620"/>`;
-      o += rect(0, 380, 800, 70, '#1a2620');
+      o += rect(-1400, 380, 3600, 70, '#1a2620');
       // broken bridge: near stub + far stub, gap in the middle
       [345, 355, 365, 375].forEach(y => { o += rect(368, y, 64, 7, '#7a5a38'); });
       [288, 297, 306].forEach(y => { o += rect(368, y, 64, 7, '#7a5a38'); });
